@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(which wails 2>/dev/null && wails version 2>/dev/null; which go 2>/dev/null && go version 2>/dev/null; which node 2>/dev/null && node --version 2>/dev/null; which npm 2>/dev/null && npm --version 2>/dev/null)",
+      "Bash(wails init --help 2>&1 | head -30)",
+      "Bash(wails init -l 2>&1)",
+      "Bash(wails init -n stock-report-analysis -t react-ts -d . 2>&1)",
+      "Bash(cd /Users/boohee/stock-report-analysis/frontend && npm install react-router-dom react-markdown tailwindcss @tailwindcss/vite 2>&1 | tail -5)",
+      "Bash(npm install react-router-dom react-markdown tailwindcss @tailwindcss/vite 2>&1 | head -30)",
+      "Bash(rm -rf node_modules package-lock.json && npm install 2>&1 | tail -10)",
+      "Bash(cd /Users/boohee/stock-report-analysis && go get modernc.org/sqlite github.com/jmoiron/sqlx 2>&1 | tail -5)",
+      "Bash(go build ./... 2>&1)",
+      "Bash(cd /Users/boohee/stock-report-analysis/frontend && npx tsc --noEmit 2>&1)",
+      "Bash(wails generate module 2>&1)",
+      "Bash(rm /Users/boohee/stock-report-analysis/frontend/tsconfig.node.json && cd /Users/boohee/stock-report-analysis/frontend && npx tsc --noEmit 2>&1)",
+      "Bash(cd /Users/boohee/stock-report-analysis && wails build 2>&1)",
+      "Bash(go build ./... 2>&1 && npx tsc --noEmit 2>&1)",
+      "Bash(cd /Users/boohee/stock-report-analysis && go build ./... 2>&1)",
+      "Bash(find /Users/boohee/stock-report-analysis/frontend/src -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" -o -name \"*.jsx\" -o -name \"*.js\" \\\\\\) 2>/dev/null | sort)",
+      "Bash(find /Users/boohee/stock-report-analysis/frontend/wailsjs -type f -name \"*.ts\" 2>/dev/null | head -20)"
+    ]
+  }
+}
