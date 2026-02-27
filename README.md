@@ -73,6 +73,12 @@ SQLite 已开启：
     └── src/pages              # Articles / ArticleDetail / Settings 页面
 ```
 
+## 文档
+
+更详细的开发、发布、自动更新与数据库说明请查看：
+
+- `docs/README.md`
+
 ## 常见问题
 
 - 批量解读失败：请先在「设置」中确认 AI 渠道、API Key 和提示词已配置。
