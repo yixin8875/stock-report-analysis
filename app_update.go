@@ -160,8 +160,8 @@ func (a *App) DownloadAndInstallAppUpdate(downloadURL string, downloadName strin
 	}
 
 	fileName := normalizeDownloadFileName(downloadURL, downloadName)
-	if !strings.HasSuffix(strings.ToLower(fileName), ".exe") {
-		return "", fmt.Errorf("Windows 一键安装仅支持 .exe 安装包，当前文件: %s", fileName)
+	if !isWindowsInstallerName(fileName) {
+		return "", fmt.Errorf("Windows 一键安装仅支持 *installer.exe 安装包，当前文件: %s", fileName)
 	}
 
 	tmpDir, err := os.MkdirTemp("", "stock-report-update-*")
@@ -369,4 +369,9 @@ func downloadToFile(downloadURL, targetPath string) error {
 	}
 	log.Printf("[UPDATE] download done bytes=%d path=%s", written, targetPath)
 	return nil
+}
+
+func isWindowsInstallerName(name string) bool {
+	name = strings.ToLower(strings.TrimSpace(name))
+	return strings.HasSuffix(name, ".exe") && strings.Contains(name, "installer")
 }

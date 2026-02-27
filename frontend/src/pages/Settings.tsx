@@ -1056,7 +1056,7 @@ export default function Settings() {
                 下载此平台安装包
               </button>
             )}
-            {updateResult?.hasUpdate && updateResult?.os === 'windows' && updateResult?.downloadUrl && (
+            {updateResult?.hasUpdate && updateResult?.os === 'windows' && updateResult?.downloadUrl && /installer\.exe$/i.test(updateResult?.downloadName || '') && (
               <button
                 onClick={installUpdateNow}
                 disabled={updateInstalling}
