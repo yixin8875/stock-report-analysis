@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  CheckAppUpdate,
   CreateRoleFromTemplate,
   DeleteChannel,
+  DownloadAndInstallAppUpdate,
   DeletePrompt,
   DeleteRole,
   DeleteTag,
   GetAnalysisDashboard,
   GetAnalysisDashboardByDays,
+  GetAppUpdateConfig,
+  GetAppVersion,
   GetChannels,
   GetMinerUConfig,
   GetPromptVersions,
@@ -17,9 +21,11 @@ import {
   GetTelegraphSchedulerConfig,
   GetTelegraphSchedulerStatus,
   GetTelegraphWatchlist,
+  OpenURL,
   RestorePromptVersion,
   RunTelegraphSchedulerNow,
   SaveChannel,
+  SaveAppUpdateConfig,
   SaveMinerUConfig,
   SavePrompt,
   SaveRole,
@@ -35,8 +41,12 @@ const inputCls = 'w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg 
 
 const TAG_COLORS = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6']
 
-type TabKey = 'channels' | 'prompts' | 'roles' | 'mineru' | 'telegraph' | 'watchlist' | 'tags' | 'dashboard'
+type TabKey = 'channels' | 'prompts' | 'roles' | 'mineru' | 'telegraph' | 'updater' | 'watchlist' | 'tags' | 'dashboard'
 type DashboardRange = 0 | 7 | 30
+
+type AppUpdateConfigData = {
+  githubRepo: string
+}
 
 type WatchStockFormData = {
   code: string
@@ -184,6 +194,13 @@ export default function Settings() {
   const [telegraphSaving, setTelegraphSaving] = useState(false)
   const [telegraphRunningNow, setTelegraphRunningNow] = useState(false)
   const [telegraphTip, setTelegraphTip] = useState('')
+  const [updateCfg, setUpdateCfg] = useState<AppUpdateConfigData>({ githubRepo: '' })
+  const [updateResult, setUpdateResult] = useState<models.AppUpdateResult | null>(null)
+  const [updateSaving, setUpdateSaving] = useState(false)
+  const [updateChecking, setUpdateChecking] = useState(false)
+  const [updateInstalling, setUpdateInstalling] = useState(false)
+  const [updateTip, setUpdateTip] = useState('')
+  const [appVersion, setAppVersion] = useState('')
   const [watchStocks, setWatchStocks] = useState<WatchStockFormData[]>([])
   const [watchSaving, setWatchSaving] = useState(false)
   const [watchTip, setWatchTip] = useState('')
@@ -215,6 +232,12 @@ export default function Settings() {
       lastAnalyzed: Number(status?.lastAnalyzed || 0),
     })
   })
+  const loadUpdateCfg = () => GetAppUpdateConfig().then((cfg) => {
+    setUpdateCfg({
+      githubRepo: cfg?.githubRepo || '',
+    })
+  })
+  const loadAppVersion = () => GetAppVersion().then((version) => setAppVersion(version || ''))
   const loadWatchlist = () => GetTelegraphWatchlist().then((list) => {
     setWatchStocks((list || []).map((item) => ({
       code: item.code || '',
@@ -238,6 +261,8 @@ export default function Settings() {
     loadMinerU()
     loadTelegraphCfg()
     loadTelegraphStatus()
+    loadUpdateCfg()
+    loadAppVersion()
     loadWatchlist()
     loadDashboard()
   }, [])
@@ -379,6 +404,60 @@ export default function Settings() {
     }
   }
 
+  const saveUpdateCfg = async () => {
+    setUpdateSaving(true)
+    setUpdateTip('')
+    try {
+      await SaveAppUpdateConfig(new models.AppUpdateConfig(updateCfg))
+      setUpdateTip('已保存')
+      await loadUpdateCfg()
+    } catch (err) {
+      setUpdateTip(`保存失败: ${toErrorMessage(err)}`)
+    } finally {
+      setUpdateSaving(false)
+    }
+  }
+
+  const checkUpdateNow = async () => {
+    setUpdateChecking(true)
+    setUpdateTip('')
+    try {
+      const result = await CheckAppUpdate()
+      const normalized = result ? new models.AppUpdateResult(result) : null
+      setUpdateResult(normalized)
+      setUpdateTip(normalized?.message || '检查完成')
+      await loadAppVersion()
+    } catch (err) {
+      setUpdateTip(`检查失败: ${toErrorMessage(err)}`)
+    } finally {
+      setUpdateChecking(false)
+    }
+  }
+
+  const openExternalURL = async (url: string) => {
+    try {
+      await OpenURL(url)
+    } catch (err) {
+      setUpdateTip(`打开失败: ${toErrorMessage(err)}`)
+    }
+  }
+
+  const installUpdateNow = async () => {
+    if (!updateResult?.downloadUrl) {
+      return
+    }
+    setUpdateInstalling(true)
+    setUpdateTip('')
+    try {
+      const msg = await DownloadAndInstallAppUpdate(updateResult.downloadUrl, updateResult.downloadName || '')
+      setUpdateTip(msg || '已启动安装')
+    } catch (err) {
+      setUpdateTip(`安装失败: ${toErrorMessage(err)}`)
+    } finally {
+      setUpdateInstalling(false)
+    }
+  }
+
   const stopTelegraphNow = async () => {
     setTelegraphRunningNow(true)
     setTelegraphTip('')
@@ -445,6 +524,7 @@ export default function Settings() {
         <TabButton tab={tab} value="roles" onClick={setTab} label="问答角色" />
         <TabButton tab={tab} value="mineru" onClick={setTab} label="MinerU 解析" />
         <TabButton tab={tab} value="telegraph" onClick={setTab} label="财联社电报" />
+        <TabButton tab={tab} value="updater" onClick={setTab} label="应用更新" />
         <TabButton tab={tab} value="watchlist" onClick={setTab} label="自选股池" />
         <TabButton tab={tab} value="tags" onClick={setTab} label="标签管理" />
         <TabButton tab={tab} value="dashboard" onClick={setTab} label="运行看板" />
@@ -924,6 +1004,101 @@ export default function Settings() {
 
           <div className="text-xs text-gray-500 leading-relaxed">
             定时任务会抓取电报、自动去重入库并调用 AI 解读；新内容会按时间顺序处理并写入“新闻电报”页面。
+          </div>
+        </div>
+      )}
+
+      {tab === 'updater' && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-gray-800">应用更新（GitHub Release）</h3>
+            <span className="text-xs text-gray-500">当前版本：{appVersion || '-'}</span>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">GitHub 仓库</label>
+            <input
+              value={updateCfg.githubRepo}
+              onChange={(e) => setUpdateCfg({ githubRepo: e.target.value })}
+              placeholder="owner/repo，例如 boohee/stock-report-analysis"
+              className={inputCls}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={saveUpdateCfg}
+              disabled={updateSaving}
+              className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 shadow-sm transition-colors disabled:opacity-50"
+            >
+              {updateSaving ? '保存中...' : '保存更新源'}
+            </button>
+            <button
+              onClick={checkUpdateNow}
+              disabled={updateChecking}
+              className="px-4 py-2 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-600 shadow-sm transition-colors disabled:opacity-50"
+            >
+              {updateChecking ? '检查中...' : '检查更新'}
+            </button>
+            {updateResult?.releaseUrl && (
+              <button
+                onClick={() => void openExternalURL(updateResult.releaseUrl)}
+                className="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                打开发布页
+              </button>
+            )}
+            {updateResult?.downloadUrl && (
+              <button
+                onClick={() => void openExternalURL(updateResult.downloadUrl)}
+                className="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                下载此平台安装包
+              </button>
+            )}
+            {updateResult?.hasUpdate && updateResult?.os === 'windows' && updateResult?.downloadUrl && (
+              <button
+                onClick={installUpdateNow}
+                disabled={updateInstalling}
+                className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50"
+              >
+                {updateInstalling ? '下载安装中...' : '一键下载安装并重启'}
+              </button>
+            )}
+            {updateTip && <span className="text-xs text-emerald-600">{updateTip}</span>}
+          </div>
+
+          {updateResult && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <div className="text-xs text-gray-500">最新版本</div>
+                <div className="mt-1 text-sm font-semibold text-gray-700">{updateResult.latestVersion || '-'}</div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <div className="text-xs text-gray-500">更新状态</div>
+                <div className={`mt-1 text-sm font-semibold ${updateResult.hasUpdate ? 'text-emerald-600' : 'text-gray-700'}`}>
+                  {updateResult.hasUpdate ? '有新版本' : '已是最新'}
+                </div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <div className="text-xs text-gray-500">适配平台</div>
+                <div className="mt-1 text-sm font-semibold text-gray-700">
+                  {updateResult.os}/{updateResult.arch}
+                </div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <div className="text-xs text-gray-500">发布时间</div>
+                <div className="mt-1 text-sm font-semibold text-gray-700">{formatDateTime(updateResult.publishedAt)}</div>
+              </div>
+              <div className="col-span-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <div className="text-xs text-gray-500">安装包</div>
+                <div className="mt-1 text-sm font-semibold text-gray-700 break-all">{updateResult.downloadName || '未匹配到当前系统安装包'}</div>
+              </div>
+            </div>
+          )}
+
+          <div className="text-xs text-gray-500 leading-relaxed">
+            发布新版本流程：推送 `v1.2.3` 这类 tag 后，GitHub Actions 会自动构建 Win/Mac 包并发布到 Release，客户端在此页可检查并跳转下载。
           </div>
         </div>
       )}

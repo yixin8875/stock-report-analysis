@@ -1,0 +1,124 @@
+name: Release Wails (Win + Mac)
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS Universal
+            os: macos-latest
+            platform: darwin/universal
+            artifact_suffix: macos-universal
+            build_flags: ""
+          - name: Windows x64
+            os: windows-latest
+            platform: windows/amd64
+            artifact_suffix: windows-amd64
+            build_flags: "-nsis"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
+
+      - name: Add Go Bin To PATH
+        shell: bash
+        run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Build App
+        run: wails build -clean -platform "${{ matrix.platform }}" -o stock-report-analysis -ldflags "-X main.Version=${{ github.ref_name }}" ${{ matrix.build_flags }}
+
+      - name: Package macOS Asset
+        id: package_macos
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          ASSET_NAME="stock-report-analysis-${{ github.ref_name }}-${{ matrix.artifact_suffix }}.zip"
+          ditto -c -k --sequesterRsrc --keepParent "build/bin/stock-report-analysis.app" "$ASSET_NAME"
+          shasum -a 256 "$ASSET_NAME" > "$ASSET_NAME.sha256"
+          echo "asset_name=$ASSET_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Package Windows Asset
+        id: package_windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem "build/bin" -Filter "*installer.exe" | Select-Object -First 1
+          if (-not $installer) {
+            throw "未找到 Windows 安装包（*installer.exe），请检查 wails -nsis 输出"
+          }
+          $assetName = "stock-report-analysis-${{ github.ref_name }}-${{ matrix.artifact_suffix }}-installer.exe"
+          Copy-Item $installer.FullName $assetName -Force
+          $hash = (Get-FileHash $assetName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $assetName" | Out-File "$assetName.sha256" -Encoding ascii
+          "asset_name=$assetName" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Upload macOS Release Asset Bundle
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.artifact_suffix }}
+          path: |
+            ${{ steps.package_macos.outputs.asset_name }}
+            ${{ steps.package_macos.outputs.asset_name }}.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Windows Release Asset Bundle
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.artifact_suffix }}
+          path: |
+            ${{ steps.package_windows.outputs.asset_name }}
+            ${{ steps.package_windows.outputs.asset_name }}.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download All Assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: release-assets
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: release-assets/*
+          generate_release_notes: true

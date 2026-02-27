@@ -26,6 +26,10 @@ export function CancelAskQuestion() {
   return window['go']['main']['App']['CancelAskQuestion']();
 }
 
+export function CheckAppUpdate() {
+  return window['go']['main']['App']['CheckAppUpdate']();
+}
+
 export function CreateQASession(arg1, arg2) {
   return window['go']['main']['App']['CreateQASession'](arg1, arg2);
 }
@@ -66,6 +70,10 @@ export function DeleteTag(arg1) {
   return window['go']['main']['App']['DeleteTag'](arg1);
 }
 
+export function DownloadAndInstallAppUpdate(arg1, arg2) {
+  return window['go']['main']['App']['DownloadAndInstallAppUpdate'](arg1, arg2);
+}
+
 export function ExportArticle(arg1) {
   return window['go']['main']['App']['ExportArticle'](arg1);
 }
@@ -84,6 +92,14 @@ export function GetAnalysisDashboardByDays(arg1) {
 
 export function GetAnalysisHistory(arg1) {
   return window['go']['main']['App']['GetAnalysisHistory'](arg1);
+}
+
+export function GetAppUpdateConfig() {
+  return window['go']['main']['App']['GetAppUpdateConfig']();
+}
+
+export function GetAppVersion() {
+  return window['go']['main']['App']['GetAppVersion']();
 }
 
 export function GetArticle(arg1) {
@@ -186,6 +202,10 @@ export function ImportArticles() {
   return window['go']['main']['App']['ImportArticles']();
 }
 
+export function OpenURL(arg1) {
+  return window['go']['main']['App']['OpenURL'](arg1);
+}
+
 export function PauseBatchAnalyze() {
   return window['go']['main']['App']['PauseBatchAnalyze']();
 }
@@ -208,6 +228,10 @@ export function RetryFailedBatchAnalyze() {
 
 export function RunTelegraphSchedulerNow() {
   return window['go']['main']['App']['RunTelegraphSchedulerNow']();
+}
+
+export function SaveAppUpdateConfig(arg1) {
+  return window['go']['main']['App']['SaveAppUpdateConfig'](arg1);
 }
 
 export function SaveChannel(arg1) {

@@ -14,6 +14,8 @@ export function BatchAnalyze(arg1:Array<number>,arg2:number,arg3:number):Promise
 
 export function CancelAskQuestion():Promise<void>;
 
+export function CheckAppUpdate():Promise<models.AppUpdateResult>;
+
 export function CreateQASession(arg1:number,arg2:string):Promise<models.QASession>;
 
 export function CreateRoleFromTemplate(arg1:string):Promise<models.Role>;
@@ -34,6 +36,8 @@ export function DeleteRole(arg1:number):Promise<void>;
 
 export function DeleteTag(arg1:number):Promise<void>;
 
+export function DownloadAndInstallAppUpdate(arg1:string,arg2:string):Promise<string>;
+
 export function ExportArticle(arg1:number):Promise<void>;
 
 export function ExportBatchFailures():Promise<void>;
@@ -43,6 +47,10 @@ export function GetAnalysisDashboard():Promise<models.AnalysisDashboard>;
 export function GetAnalysisDashboardByDays(arg1:number):Promise<models.AnalysisDashboard>;
 
 export function GetAnalysisHistory(arg1:number):Promise<Array<models.AnalysisHistory>>;
+
+export function GetAppUpdateConfig():Promise<models.AppUpdateConfig>;
+
+export function GetAppVersion():Promise<string>;
 
 export function GetArticle(arg1:number):Promise<models.Article>;
 
@@ -94,6 +102,8 @@ export function ImportArticle():Promise<models.Article>;
 
 export function ImportArticles():Promise<Array<models.Article>>;
 
+export function OpenURL(arg1:string):Promise<void>;
+
 export function PauseBatchAnalyze():Promise<void>;
 
 export function RenameQASession(arg1:number,arg2:string):Promise<void>;
@@ -105,6 +115,8 @@ export function ResumeBatchAnalyze():Promise<void>;
 export function RetryFailedBatchAnalyze():Promise<void>;
 
 export function RunTelegraphSchedulerNow():Promise<void>;
+
+export function SaveAppUpdateConfig(arg1:models.AppUpdateConfig):Promise<void>;
 
 export function SaveChannel(arg1:models.AIChannel):Promise<void>;
 

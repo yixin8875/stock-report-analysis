@@ -38,6 +38,28 @@ type TelegraphSchedulerConfig struct {
 	AnalysisPrompt  string `json:"analysisPrompt"`
 }
 
+type AppUpdateConfig struct {
+	GitHubRepo string `json:"githubRepo"`
+}
+
+type AppUpdateResult struct {
+	Repo           string    `json:"repo"`
+	CurrentVersion string    `json:"currentVersion"`
+	LatestVersion  string    `json:"latestVersion"`
+	HasUpdate      bool      `json:"hasUpdate"`
+	ReleaseName    string    `json:"releaseName"`
+	ReleaseNotes   string    `json:"releaseNotes"`
+	ReleaseURL     string    `json:"releaseUrl"`
+	PublishedAt    time.Time `json:"publishedAt"`
+	DownloadName   string    `json:"downloadName"`
+	DownloadURL    string    `json:"downloadUrl"`
+	DownloadSize   int64     `json:"downloadSize"`
+	OS             string    `json:"os"`
+	Arch           string    `json:"arch"`
+	CheckedAt      time.Time `json:"checkedAt"`
+	Message        string    `json:"message"`
+}
+
 type TelegraphSchedulerStatus struct {
 	Running      bool      `json:"running"`
 	LastRunAt    time.Time `json:"lastRunAt"`
