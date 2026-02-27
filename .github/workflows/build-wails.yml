@@ -1,11 +1,6 @@
 name: Build Wails (Win + Mac)
 
 on:
-  push:
-    branches:
-      - "**"
-    tags:
-      - "v*"
   workflow_dispatch:
 
 concurrency:
